@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SayClip</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="single-line-layout">
+            <button id="recordBtn" class="record-btn">
+                <span class="icon">●</span>
+            </button>
+
+            <div class="visualizer-container">
+                <canvas id="frequencyCanvas" width="200" height="40"></canvas>
+            </div>
+
+            <div class="status">
+                <span id="statusText">Ready</span>
+                <span id="recordingTime">00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

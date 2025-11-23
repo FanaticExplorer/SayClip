@@ -1,0 +1,9 @@
+# PyCharm project files
+.idea
+
+# Test files/folders
+recordings
+test*
+
+# Environment variable files
+.env
