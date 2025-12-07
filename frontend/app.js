@@ -11,6 +11,7 @@ class AudioRecorder {
         this.animationFrame = null;
         this.recordingStartTime = null;
         this.timerInterval = null;
+        this.audioStream = null; // Store audio stream reference for proper cleanup
         this.setupUI();
         this.setupCanvas();
     }
@@ -39,12 +40,17 @@ class AudioRecorder {
             this.startRecording().catch((error) => {
                 console.error('Failed to start recording:', error);
                 this.statusText.textContent = 'Failed to start recording';
+                // Ensure cleanup on error
+                this.cleanupAudioStream();
             });
         }
     }
 
     async startRecording() {
         try {
+            // Clean up any existing stream before starting new recording
+            this.cleanupAudioStream();
+
             const audioStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
@@ -52,6 +58,10 @@ class AudioRecorder {
                     sampleRate: 44100
                 }
             });
+
+            // Store the stream reference for proper cleanup
+            this.audioStream = audioStream;
+
             this.setupAudioAnalysis(audioStream);
             this.setupAudioRecording(audioStream);
             this.updateUIForRecording();
@@ -60,6 +70,8 @@ class AudioRecorder {
         } catch (error) {
             console.error('Microphone access failed:', error);
             this.statusText.textContent = 'Error: No microphone access';
+            // Ensure cleanup on error
+            this.cleanupAudioStream();
         }
     }
 
@@ -89,6 +101,15 @@ class AudioRecorder {
             }
         };
         this.mediaRecorder.onstop = () => this.processRecording();
+
+        // Add error handling for MediaRecorder
+        this.mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            this.statusText.textContent = 'Recording error';
+            // Clean up on MediaRecorder error
+            this.cleanupAudioStream();
+        };
+
         this.mediaRecorder.start(100);
         this.isRecording = true;
         this.recordingStartTime = Date.now();
@@ -116,6 +137,10 @@ class AudioRecorder {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
+
+        // Clean up microphone stream to release access
+        this.cleanupAudioStream();
+
         this.isRecording = false;
         this.dataArray = null;
         this.recordBtn.classList.remove('recording');
@@ -132,7 +157,37 @@ class AudioRecorder {
         this.saveToFile(audioBlob).catch((error) => {
             console.error('Failed to save audio file:', error);
             this.statusText.textContent = 'Save failed';
+        }).finally(() => {
+            // Ensure stream cleanup after processing completes
+            this.cleanupAudioStream();
         });
+    }
+
+    /**
+     * Clean up audio stream to properly release microphone access
+     * Handles all edge cases including null checks and error handling
+     */
+    cleanupAudioStream() {
+        try {
+            if (this.audioStream) {
+                // Stop all tracks to release microphone
+                this.audioStream.getTracks().forEach(track => {
+                    try {
+                        track.stop();
+                    } catch (error) {
+                        console.warn('Failed to stop track:', error);
+                    }
+                });
+
+                // Reset stream reference
+                this.audioStream = null;
+                console.log('Audio stream cleaned up successfully');
+            }
+        } catch (error) {
+            console.error('Error during audio stream cleanup:', error);
+            // Always reset the reference even if cleanup failed
+            this.audioStream = null;
+        }
     }
 
     startTimer() {
@@ -263,10 +318,16 @@ class AudioRecorder {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new AudioRecorder();
+    // Make audio recorder globally accessible for cleanup on window close
+    window.audioRecorderInstance = new AudioRecorder();
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
+            // Clean up microphone before closing
+            if (window.audioRecorderInstance) {
+                window.audioRecorderInstance.cleanupAudioStream();
+            }
+
             if (window.pywebview && window.pywebview.api && window.pywebview.api.close_window) {
                 window.pywebview.api.close_window()
                     .then(() => {
@@ -280,6 +341,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+});
+
+// Additional cleanup handlers for pywebview window events
+window.addEventListener('beforeunload', () => {
+    // Clean up microphone when window is being closed
+    if (window.audioRecorderInstance) {
+        window.audioRecorderInstance.cleanupAudioStream();
+    }
+});
+
+window.addEventListener('unload', () => {
+    // Final cleanup attempt
+    if (window.audioRecorderInstance) {
+        window.audioRecorderInstance.cleanupAudioStream();
+    }
 });
 
 window.addEventListener('resize', () => {
