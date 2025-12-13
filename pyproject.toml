@@ -5,7 +5,7 @@ description = ""
 requires-python = ">=3.13"
 dependencies = [
     "copykitten>=2.0.0",
-    "openai>=2.8.1",
+    "openai>=2.11.0",
     "python-dotenv>=1.2.1",
-    "pywebview[pyside6]>=6.1",
+    "pywebview[pyside6]>=6.1"
 ]
