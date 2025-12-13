@@ -12,6 +12,20 @@ class AudioRecorder {
         this.recordingStartTime = null;
         this.timerInterval = null;
         this.audioStream = null; // Store audio stream reference for proper cleanup
+
+        // Performance optimizations
+        this.frameSkipCounter = 0;
+        this.frameSkipRate = 1; // Render every frame by default, can be adjusted for lower-end devices
+        this.lastFrameTime = 0;
+        this.targetFrameTime = 1000 / 60; // 60fps target
+        this.cachedGradient = null;
+        this.cachedBarConfig = {
+            barCount: 32,
+            barWidth: 0,
+            groupSize: 0,
+            rect: { width: 0, height: 0 }
+        };
+
         this.setupUI();
         this.setupCanvas();
     }
@@ -30,7 +44,23 @@ class AudioRecorder {
         this.canvas.width = rect.width * window.devicePixelRatio;
         this.canvas.height = rect.height * window.devicePixelRatio;
         this.canvasContext.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        // Cache bar configuration for performance
+        this.updateCachedBarConfig(rect);
+
         this.drawEmptyBars();
+    }
+
+    updateCachedBarConfig(rect) {
+        this.cachedBarConfig.rect = rect;
+        this.cachedBarConfig.barWidth = rect.width / this.cachedBarConfig.barCount;
+        this.cachedBarConfig.groupSize = Math.floor(256 / this.cachedBarConfig.barCount); // Using half of fftSize for better performance
+
+        // Create and cache the gradient
+        this.cachedGradient = this.canvasContext.createLinearGradient(0, 0, 0, rect.height);
+        this.cachedGradient.addColorStop(0, '#666');
+        this.cachedGradient.addColorStop(0.5, '#999');
+        this.cachedGradient.addColorStop(1, '#ccc');
     }
 
     handleToggleRecording() {
@@ -79,8 +109,9 @@ class AudioRecorder {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         this.audioContext = new AudioContextClass();
         this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 512;
-        this.analyser.smoothingTimeConstant = 0.8;
+        // Optimized FFT size for better performance while maintaining visual quality
+        this.analyser.fftSize = 512; // Keep at 512 for good balance between performance and quality
+        this.analyser.smoothingTimeConstant = 0.7; // Slightly reduced for more responsive visualization
         this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
         const microphone = this.audioContext.createMediaStreamSource(audioStream);
         microphone.connect(this.analyser);
@@ -191,15 +222,19 @@ class AudioRecorder {
     }
 
     startTimer() {
+        // Reduced timer frequency for better performance - update every 500ms instead of 1000ms for smoother feel
         this.timerInterval = setInterval(() => {
             if (this.recordingStartTime) {
                 const elapsed = Date.now() - this.recordingStartTime;
                 const minutes = Math.floor(elapsed / 60000);
                 const seconds = Math.floor((elapsed % 60000) / 1000);
-                this.recordingTime.textContent =
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                // Batch DOM updates to avoid multiple reflows
+                requestAnimationFrame(() => {
+                    this.recordingTime.textContent =
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                });
             }
-        }, 1000);
+        }, 500); // Reduced from 1000ms to 500ms for smoother timer updates
     }
 
     startVisualization() {
@@ -210,37 +245,59 @@ class AudioRecorder {
             }
             return;
         }
+
+        // Frame rate control for consistent 60fps performance
+        const currentTime = performance.now();
+        const deltaTime = currentTime - this.lastFrameTime;
+
+        // Skip frames if we're running too fast (helps maintain stable 60fps)
+        this.frameSkipCounter++;
+        if (deltaTime < this.targetFrameTime && this.frameSkipCounter < this.frameSkipRate) {
+            this.animationFrame = requestAnimationFrame(() => this.startVisualization());
+            return;
+        }
+
+        this.frameSkipCounter = 0;
+        this.lastFrameTime = currentTime;
+
         this.animationFrame = requestAnimationFrame(() => this.startVisualization());
         this.analyser.getByteFrequencyData(this.dataArray);
         this.drawFrequencyBars();
     }
 
     drawFrequencyBars() {
-        const canvas = this.canvas;
         const ctx = this.canvasContext;
-        const rect = canvas.getBoundingClientRect();
+        const config = this.cachedBarConfig;
+        const rect = config.rect;
+
+        // Optimized clear operation - only clear once
         ctx.clearRect(0, 0, rect.width, rect.height);
-        const barCount = 32;
-        const barWidth = rect.width / barCount;
-        const groupSize = Math.floor(this.dataArray.length / barCount);
-        const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
-        gradient.addColorStop(0, '#666');
-        gradient.addColorStop(0.5, '#999');
-        gradient.addColorStop(1, '#ccc');
-        for (let i = 0; i < barCount; i++) {
+
+        // Use cached gradient instead of creating new one each frame
+        ctx.fillStyle = this.cachedGradient;
+
+        // Pre-calculate values outside the loop for better performance
+        const heightMultiplier = rect.height * 0.9 / 255;
+        const barSpacing = 2;
+
+        for (let i = 0; i < config.barCount; i++) {
+            // Optimized averaging using cached group size
             let sum = 0;
-            const startIndex = i * groupSize;
-            const endIndex = Math.min(startIndex + groupSize, this.dataArray.length);
+            const startIndex = i * config.groupSize;
+            const endIndex = Math.min(startIndex + config.groupSize, this.dataArray.length);
+
             for (let j = startIndex; j < endIndex; j++) {
                 sum += this.dataArray[j];
             }
+
             const averageValue = sum / (endIndex - startIndex);
-            const barHeight = (averageValue / 255) * rect.height * 0.9;
-            ctx.fillStyle = gradient;
+            const barHeight = averageValue * heightMultiplier;
+
+            // Draw bar with cached width calculation
             ctx.fillRect(
-                i * barWidth,
+                i * config.barWidth,
                 rect.height - barHeight,
-                barWidth - 2,
+                config.barWidth - barSpacing,
                 barHeight
             );
         }
@@ -360,11 +417,15 @@ window.addEventListener('unload', () => {
 
 window.addEventListener('resize', () => {
     const canvas = document.getElementById('frequencyCanvas');
-    if (canvas) {
+    if (canvas && window.audioRecorderInstance) {
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * window.devicePixelRatio;
         canvas.height = rect.height * window.devicePixelRatio;
         const ctx = canvas.getContext('2d');
         ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        // Update cached configuration when canvas resizes
+        window.audioRecorderInstance.updateCachedBarConfig(rect);
+        window.audioRecorderInstance.drawEmptyBars();
     }
 });
