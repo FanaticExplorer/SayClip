@@ -189,7 +189,7 @@ class AudioRecorder {
         this.saveToFile(audioBlob)
             .then((result) => {
                 if (result && result.success) {
-                    this.statusText.textContent = 'Done!';
+                    this.statusText.textContent = result.copied ? 'Done! (copied)' : 'Done!';
                 } else {
                     this.statusText.textContent = 'Failed';
                 }

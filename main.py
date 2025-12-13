@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 import json
 from dotenv import load_dotenv
+from copykitten import copy as ck_copy
 
 from warnings import filterwarnings
 # Had to add this one, because of httpx deprecation warning in httpx (URL.raw derprecation).
@@ -51,11 +52,18 @@ class AudioAPI:
 
             text = transcription.text.strip()
             print(text)
+            copied = False
+            try:
+                ck_copy(text)
+                copied = True
+            except Exception as copy_error:
+                print(f"Clipboard copy failed: {copy_error}")
             return {
                 "success": True,
                 "stage": "done",
                 "message": "Transcription complete",
-                "text": text
+                "text": text,
+                "copied": copied
             }
 
         except Exception as e:
@@ -64,7 +72,8 @@ class AudioAPI:
             return {
                 "success": False,
                 "stage": "error",
-                "message": error_message
+                "message": error_message,
+                "copied": False
             }
 
     @staticmethod
