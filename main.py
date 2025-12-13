@@ -37,11 +37,11 @@ class AudioAPI:
             return {}
 
     def process_audio(self, audio_base64):
-        """Save base64 encoded WebM audio data"""
+        """Transcribe base64 encoded WebM audio data"""
         try:
             audio_data = base64.b64decode(audio_base64)
             audio_file = BytesIO(audio_data)
-            audio_file.name = f"recording_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.webm"
+            audio_file.name = f"recording_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.webm"
 
             transcription = self.client.audio.transcriptions.create(
                 model=self.model,
@@ -49,12 +49,23 @@ class AudioAPI:
                 prompt=self.prompt
             )
 
-            print(transcription.text)
-            return transcription.text
+            text = transcription.text.strip()
+            print(text)
+            return {
+                "success": True,
+                "stage": "done",
+                "message": "Transcription complete",
+                "text": text
+            }
 
         except Exception as e:
-            print(f"Error saving audio: {str(e)}")
-            return f"Error: {str(e)}"
+            error_message = str(e)
+            print(f"Error saving audio: {error_message}")
+            return {
+                "success": False,
+                "stage": "error",
+                "message": error_message
+            }
 
     @staticmethod
     def close_window():

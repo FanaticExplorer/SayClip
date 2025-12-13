@@ -185,13 +185,23 @@ class AudioRecorder {
 
     processRecording() {
         const audioBlob = new Blob(this.recordedChunks, { type: 'audio/webm' });
-        this.saveToFile(audioBlob).catch((error) => {
-            console.error('Failed to save audio file:', error);
-            this.statusText.textContent = 'Save failed';
-        }).finally(() => {
-            // Ensure stream cleanup after processing completes
-            this.cleanupAudioStream();
-        });
+        this.statusText.textContent = 'Transcribing...';
+        this.saveToFile(audioBlob)
+            .then((result) => {
+                if (result && result.success) {
+                    this.statusText.textContent = 'Done!';
+                } else {
+                    this.statusText.textContent = 'Failed';
+                }
+            })
+            .catch((error) => {
+                console.error('Failed to save audio file:', error);
+                this.statusText.textContent = 'Failed';
+            })
+            .finally(() => {
+                // Ensure stream cleanup after processing completes
+                this.cleanupAudioStream();
+            });
     }
 
     /**
@@ -345,19 +355,23 @@ class AudioRecorder {
                         if (window.pywebview && window.pywebview.api && window.pywebview.api.process_audio) {
                             window.pywebview.api.process_audio(base64Audio)
                                 .then((result) => {
-                                    console.log('Audio saved successfully:', result);
-                                    this.statusText.textContent = 'Saved';
-                                    resolve(result);
+                                    if (result && result.success) {
+                                        console.log('Audio saved successfully:', result);
+                                        resolve(result);
+                                    } else {
+                                        const message = result && result.message ? result.message : 'Unknown error';
+                                        console.error('Failed to save audio:', message);
+                                        reject(new Error(message));
+                                    }
                                 })
                                 .catch((error) => {
                                     console.error('Failed to save audio:', error);
-                                    this.statusText.textContent = 'Save failed';
                                     reject(error);
                                 });
                         } else {
                             console.log('Audio ready (Python connection not available)');
                             this.statusText.textContent = 'Ready (no Python connection)';
-                            resolve(null);
+                            resolve({ success: false, message: 'Python connection unavailable' });
                         }
                     } catch (e) {
                         reject(e);
