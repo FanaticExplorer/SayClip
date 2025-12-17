@@ -97,7 +97,7 @@ def main():
         frontend_path,
         js_api=api,
         width=500,
-        height=140,
+        height=50,
         resizable=False,
     )
 
