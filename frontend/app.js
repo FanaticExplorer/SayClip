@@ -26,6 +26,8 @@ class AudioRecorder {
             rect: { width: 0, height: 0 }
         };
 
+        this.hasSpeech = false;
+
         this.setupUI();
         this.setupCanvas();
     }
@@ -114,7 +116,19 @@ class AudioRecorder {
         this.analyser.smoothingTimeConstant = 0.7; // Slightly reduced for more responsive visualization
         this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
         const microphone = this.audioContext.createMediaStreamSource(audioStream);
-        microphone.connect(this.analyser);
+        microphone.connect(this.analyser)
+        this.harkEvents = hark(audioStream, {
+        interval: 100,      // Check every 100ms (default 100)
+        threshold: -50,     // dB; start here, tune to -55/-60 if too sensitive
+        play: false         // Don't output to speakers
+        });
+
+        this.hasSpeech = false;
+
+        this.harkEvents.on('speaking', () => {
+            this.hasSpeech = true;
+            console.log('Speech detected');
+        });
     }
 
     setupAudioRecording(audioStream) {
@@ -169,6 +183,11 @@ class AudioRecorder {
             this.timerInterval = null;
         }
 
+        if (this.harkEvents) {
+            this.harkEvents.stop();
+            this.harkEvents = null;
+        }
+
         // Clean up microphone stream to release access
         this.cleanupAudioStream();
 
@@ -184,6 +203,11 @@ class AudioRecorder {
     }
 
     processRecording() {
+        if (!this.hasSpeech) {
+            this.statusText.textContent = 'No speech detected';
+            setTimeout(() => this.drawEmptyBars(), 100);
+            return;
+        }
         const audioBlob = new Blob(this.recordedChunks, { type: 'audio/webm' });
         this.statusText.textContent = 'Transcribing...';
         this.saveToFile(audioBlob)
