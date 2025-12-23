@@ -16,8 +16,12 @@ from openai import OpenAI
 
 class AudioAPI:
     def __init__(self):
-        self.recordings_dir = "recordings"
-        os.makedirs(self.recordings_dir, exist_ok=True)
+        # Technically we don't need this anymore since we're using in-memory files,
+        # but man, who knows if I need to restore this feature...
+        # Let it beeeeeeeeeeeee :)
+
+        # self.recordings_dir = "recordings"
+        # os.makedirs(self.recordings_dir, exist_ok=True)
 
         load_dotenv()
         self.config = self.load_config()
