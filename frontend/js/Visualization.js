@@ -107,6 +107,8 @@ export class Visualization {
         // Pre-calculate values outside the loop for better performance
         const heightMultiplier = rect.height * 0.9 / 255;
         const barSpacing = 2;
+        const centerY = rect.height / 2;
+        const borderRadius = 3;
 
         for (let i = 0; i < config.barCount; i++) {
             // Optimized averaging using cached group size
@@ -120,14 +122,17 @@ export class Visualization {
 
             const averageValue = sum / (endIndex - startIndex);
             const barHeight = averageValue * heightMultiplier;
+            const halfBarHeight = barHeight / 2;
 
-            // Draw bar with cached width calculation
-            ctx.fillRect(
-                i * config.barWidth,
-                rect.height - barHeight,
-                config.barWidth - barSpacing,
-                barHeight
-            );
+            // Draw bar from center with rounded corners
+            const x = i * config.barWidth;
+            const width = config.barWidth - barSpacing;
+            const y = centerY - halfBarHeight;
+
+            // Draw rounded rectangle
+            ctx.beginPath();
+            ctx.roundRect(x, y, width, barHeight, borderRadius);
+            ctx.fill();
         }
     }
 
@@ -157,11 +162,19 @@ export class Visualization {
         ctx.clearRect(0, 0, rect.width, rect.height);
         const barCount = 32;
         const barWidth = rect.width / barCount;
+        const centerY = rect.height / 2;
+        const borderRadius = 3;
+
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         for (let i = 0; i < barCount; i++) {
             const x = i * barWidth;
             const baseHeight = 3 + Math.sin(i * 0.3) * 2;
-            ctx.fillRect(x, rect.height - baseHeight, barWidth - 2, baseHeight);
+            const halfHeight = baseHeight / 2;
+            const y = centerY - halfHeight;
+
+            ctx.beginPath();
+            ctx.roundRect(x, y, barWidth - 2, baseHeight, borderRadius);
+            ctx.fill();
         }
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI';
