@@ -52,7 +52,7 @@ export class Visualization {
 
     /**
      * Start the visualization animation loop
-     * @param {AnalyserNode} analyser - Web Audio API analyser node
+     * @param {AnalyserNode} analyser - Web Audio API analyzer node
      * @param {Uint8Array} dataArray - Array to store frequency data
      * @param {boolean} isRecording - Whether recording is active
      */
