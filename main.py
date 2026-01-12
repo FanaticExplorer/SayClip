@@ -30,6 +30,7 @@ class AudioAPI:
         self.prompt = self.config["openai"].get("prompt", "")
 
         self.client = OpenAI()
+        self.window = None
 
     @staticmethod
     def load_config():
@@ -80,23 +81,21 @@ class AudioAPI:
                 "copied": False
             }
 
-    @staticmethod
-    def close_window():
+    def close_window(self):
         """Close the application window"""
-        # Probably doesn't work?
-        # noinspection PyTypeHints
-        webview.windows[0].destroy()
+        if self.window:
+            self.window.destroy()
 
 
 def main():
     api = AudioAPI()
 
-    frontend_path = os.path.join(os.path.dirname(__file__), "frontend", "index.html")
+    frontend_path = os.path.join(os.path.dirname(__file__), "frontend", "main", "index.html")
     if not os.path.exists(frontend_path):
         print(f"Frontend file not found: {frontend_path}")
         return
 
-    webview.create_window(
+    window = webview.create_window(
         'SayClip',
         frontend_path,
         js_api=api,
@@ -104,6 +103,9 @@ def main():
         height=50,
         resizable=False,
     )
+
+    # Store window reference in the API instance
+    api.window = window
 
     webview.start(
         gui='qt',
