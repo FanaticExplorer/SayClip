@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SayClip - Setup</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="setup-card">
+            <h1>Welcome to SayClip</h1>
+            <p>Get your OpenAI API key to start transcribing</p>
+
+            <p class="info-text">
+                Don't have a key?
+                <a href="https://platform.openai.com/api/keys" target="_blank">Get one here</a>
+            </p>
+
+            <input
+                type="text"
+                class="setup-input"
+                placeholder="Enter your OpenAI API Key"
+                id="apiKeyInput"
+            >
+
+            <button class="setup-button" id="continueBtn">Continue</button>
+        </div>
+    </div>
+
+    <script src="./app.js"></script>
+</body>
+</html>

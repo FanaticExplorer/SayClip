@@ -14,6 +14,9 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=UserWarning, message=".*URL.raw is deprecated.*")
 from openai import OpenAI
 
+# For now we will make it like this in sake of implementing it
+API_KEY_AVAILABLE = False
+
 class AudioAPI:
     def __init__(self):
         # Technically we don't need this anymore since we're using in-memory files,
@@ -86,18 +89,23 @@ class AudioAPI:
         if self.window:
             self.window.destroy()
 
+def check_key():
+    if not API_KEY_AVAILABLE:
+        setup_page_frontend = str((Path(__file__).parent / "frontend" / "setup" / "index.html").as_uri())
+        setup_window = webview.create_window(
+            'Setup',
+            setup_page_frontend,
+            width=400,
+            height=300,
+        )
 
 def main():
     api = AudioAPI()
 
-    frontend_path = os.path.join(os.path.dirname(__file__), "frontend", "main", "index.html")
-    if not os.path.exists(frontend_path):
-        print(f"Frontend file not found: {frontend_path}")
-        return
-
+    main_page_frontend = str((Path(__file__).parent / "frontend" / "main" / "index.html").resolve())
     window = webview.create_window(
         'SayClip',
-        frontend_path,
+        main_page_frontend,
         js_api=api,
         width=500,
         height=50,
@@ -108,6 +116,7 @@ def main():
     api.window = window
 
     webview.start(
+        check_key,
         gui='qt',
         icon="icon.ico",
         debug=os.getenv("ENABLE_DEBUG", "0") == "1"
