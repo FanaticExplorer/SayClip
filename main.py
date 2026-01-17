@@ -11,7 +11,7 @@ def main():
     # Check for API key in keyring
     api_key_available = keyring.get_password("SayClip", "openai_api_key") is not None
 
-    if not api_key_available:
+    if os.getenv("SHOW_SETUP") == "1" or not api_key_available:
         setup_page_frontend = str((Path(__file__).parent / "frontend" / "setup" / "index.html").resolve())
         window = webview.create_window(
             'Setup',
