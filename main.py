@@ -29,6 +29,7 @@ def main():
             width=500,
             height=50,
             resizable=False,
+            on_top=True,
         )
 
     # Store window reference in the API instance
