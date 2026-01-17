@@ -89,34 +89,32 @@ class AudioAPI:
         if self.window:
             self.window.destroy()
 
-def check_key():
+def main():
+    api = AudioAPI()
+
     if not API_KEY_AVAILABLE:
-        setup_page_frontend = str((Path(__file__).parent / "frontend" / "setup" / "index.html").as_uri())
+        setup_page_frontend = str((Path(__file__).parent / "frontend" / "setup" / "index.html").resolve())
         setup_window = webview.create_window(
             'Setup',
             setup_page_frontend,
             width=400,
-            height=300,
+            height=280,
+        )
+    else:
+        main_page_frontend = str((Path(__file__).parent / "frontend" / "main" / "index.html").resolve())
+        window = webview.create_window(
+            'SayClip',
+            main_page_frontend,
+            js_api=api,
+            width=500,
+            height=50,
+            resizable=False,
         )
 
-def main():
-    api = AudioAPI()
-
-    main_page_frontend = str((Path(__file__).parent / "frontend" / "main" / "index.html").resolve())
-    window = webview.create_window(
-        'SayClip',
-        main_page_frontend,
-        js_api=api,
-        width=500,
-        height=50,
-        resizable=False,
-    )
-
-    # Store window reference in the API instance
-    api.window = window
+        # Store window reference in the API instance
+        api.window = window
 
     webview.start(
-        check_key,
         gui='qt',
         icon="icon.ico",
         debug=os.getenv("ENABLE_DEBUG", "0") == "1"

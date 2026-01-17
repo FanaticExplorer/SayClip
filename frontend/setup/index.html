@@ -11,18 +11,19 @@
         <div class="setup-card">
             <h1>Welcome to SayClip</h1>
             <p>Get your OpenAI API key to start transcribing</p>
+            <a href="https://placeholder.org/" target="_blank">Why do we need it?</a>
 
-            <p class="info-text">
-                Don't have a key?
-                <a href="https://platform.openai.com/api/keys" target="_blank">Get one here</a>
-            </p>
-
+            <label for="apiKeyInput" style="display:none"></label>
             <input
                 type="text"
                 class="setup-input"
                 placeholder="Enter your OpenAI API Key"
                 id="apiKeyInput"
             >
+            <p class="info-text">
+                Don't have a key?
+                <a href="https://platform.openai.com/api/keys" target="_blank">Get one here</a>
+            </p>
 
             <button class="setup-button" id="continueBtn">Continue</button>
         </div>
