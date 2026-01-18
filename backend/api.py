@@ -23,6 +23,8 @@ class AudioAPI:
 
         self.model = self.config.get("openai", {}).get("model", "whisper-1")
         self.prompt = self.config.get("openai", {}).get("prompt", "")
+        self.base_url = self.config.get("openai", {}).get("base_url", "https://api.openai.com/v1/")
+        self.temperature = self.config.get("openai", {}).get("temperature", 0)
 
         # Try to get key from keyring first, then environment variable
         self.api_key = keyring.get_password("SayClip", "openai_api_key") or os.getenv("OPENAI_API_KEY")
@@ -41,7 +43,7 @@ class AudioAPI:
 
         try:
             # Validate by creating a temporary client and listing models
-            client = OpenAI(api_key=api_key)
+            client = OpenAI(api_key=api_key, base_url=self.base_url)
             client.models.list()
 
             # If successful, save to keyring
@@ -88,7 +90,8 @@ class AudioAPI:
             transcription = self.client.audio.transcriptions.create(
                 model=self.model,
                 file=audio_file,
-                prompt=self.prompt
+                prompt=self.prompt,
+                temperature=self.temperature
             )
 
             text = transcription.text.strip()
